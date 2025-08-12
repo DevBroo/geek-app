@@ -1,0 +1,12 @@
+# Add these dependencies to your geekapp/package.json
+
+# Install via npm:
+npm install socket.io-client @react-native-async-storage/async-storage
+
+# Or add manually to package.json dependencies:
+{
+  "dependencies": {
+    "socket.io-client": "^4.7.5",
+    "@react-native-async-storage/async-storage": "^1.19.5"
+  }
+}
