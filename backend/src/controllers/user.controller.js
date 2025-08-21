@@ -96,9 +96,9 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(400, "Invalid full name format");
     }
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(User._id);
 
-    const loggedInUser = await User.findById(user._id).select("-password -otp -refreshToken -otpExpires -otpVerified");
+    const loggedInUser = await User.findById(User._id).select("-password -otp -refreshToken -otpExpires -otpVerified");
 
 
     // make the username regex to be alphanumeric and 3-20 characters long
@@ -355,10 +355,10 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 
 const updateAccountDetails = asyncHandler( async( req, res ) => {
-    const {username, email} = req.body;
+    const {username, email, contactNumber, shopAddress, GSTNumber, urdId, } = req.body;
 
-    if (!username && !email){
-        new ApiError(400, "Both fields is required")
+    if (!username || !email || !contactNumber || !shopAddress || !GSTNumber || !urdId) {
+        new ApiError(400, "All fields is required to update account details")
     }
  
     const user = await user.findByIdAndUpdate(
@@ -366,7 +366,11 @@ const updateAccountDetails = asyncHandler( async( req, res ) => {
         
         $set:{
                 username,
-                email
+                email,
+                contactNumber,
+                shopAddress,
+                GSTNumber,
+                urdId,
             }
     },
     {new:true})
@@ -403,7 +407,7 @@ const updateProfilePicture = asyncHandler( async( req, res ) => {
         },
         {new:true}
     )
-    .select("-password")
+    .select("-password -refreshToken")
 
     return res.
     status(200).
@@ -411,4 +415,13 @@ const updateProfilePicture = asyncHandler( async( req, res ) => {
 })
 
 
-export { registerUser, loginUser, logOutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateProfilePicture };
+export { 
+    registerUser, 
+    loginUser, 
+    logOutUser, 
+    refreshAccessToken, 
+    changeCurrentPassword, 
+    getCurrentUser, 
+    updateAccountDetails, 
+    updateProfilePicture 
+};

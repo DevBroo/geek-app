@@ -93,7 +93,9 @@ export const buildAdminRouter = async (httpserver) => {
   const AdminJSrouter = AdminJSExpress.buildAuthenticatedRouter(
     admin,
     {
-      authenticate: authProvider,
+      authenticate: async (email, password) => {
+        return await authProvider.authenticate({ email, password });
+      },
       // authenticate: async (email, password) => {
       //   console.log('🔐 Starting admin authentication flow...');
       //   console.log('📨 Received login request for:', email);

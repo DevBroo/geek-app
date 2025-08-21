@@ -14,11 +14,12 @@ import mongoose from "mongoose";
 const updateStock = asyncHandler ( async( req, res ) => {
     try {
 
-        const productId = await Product.findById(productId);
+        const productId = req.body;
+        const product = await Product.findById(productId);
 
-        const inventory = await Inventory.findOne({ productId });
+        const inventory = await Inventory.findOne({ product });
         if (!inventory) {
-            console.warn(`Inventory not found for product ID: ${productId}. Cannot update stock.`);
+            console.warn(`Inventory not found for product ID: ${product}. Cannot update stock.`);
             return; // Or throw error, depending on desired strictness
         }
         inventory.stock += quantity; // Add stock back if quantity is positive, deduct if negative
@@ -63,7 +64,10 @@ const getMyOrderDetails = asyncHandler( async( req, res) => {
 const getSingleOrderDetails = asyncHandler( async( req, res ) => {
 
     try {
-        const order = await Order.findById(req.params._id);
+        const order = await Order.findById(req.params._id)
+        .populate('products.product', 'productTitle productDescription productImage originalPrice discountedPrice category brand shippingAddress paymentMethod status createdAt updatedAt')
+        .populate('user', 'name email');
+
         if (!order) {
             throw new ApiError(404, "Order not found");
         }
@@ -156,6 +160,8 @@ const updateOrderToPaid = asyncHandler( async( req, res ) => {
     
         order.paymentMethod = req.body.paymentMethod;
         order.deliveryDate = req.body.deliveryDate;
+        order.paymentStatus = "paid"; // Update status to 'paid'
+        order.paidAt = Date.now(); // Set the payment timestamp
         await order.save();
         return res
         .status(200)
@@ -168,8 +174,6 @@ const updateOrderToPaid = asyncHandler( async( req, res ) => {
         throw new ApiError(500, {}, "Error while updating order for admin");
         
     }
-
-
 })
 
 

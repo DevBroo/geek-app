@@ -23,7 +23,7 @@ class AdminWebSocketService {
     try {
       // Import Socket.IO client for server-side use
       const { io } = await import('socket.io-client');
-      const socketUrl = `http://localhost:${process.env.PORT || 3000}`;
+      const socketUrl = `http://localhost:${process.env.PORT || 8000}`;
       // Add token validation function
       const isValidToken = (token) => {
         try {
@@ -50,19 +50,10 @@ class AdminWebSocketService {
       
       // Add query parameters for authentication
       if (adminToken) {
-        connectionOptions.auth = { token: this.adminToken };
+        connectionOptions.auth = { token: adminToken, clientType: 'admin' };
       }
       
-      this.adminSocket = io(socketUrl, {
-        auth: {
-          token: this.adminToken,
-          clientType: 'admin'
-        },
-        transports: ['websocket', 'polling'],
-        reconnection: true,
-        reconnectionDelay: this.reconnectDelay,
-        reconnectionAttempts: this.maxReconnectAttempts
-      });
+      this.adminSocket = io(socketUrl, connectionOptions);
 
       this.setupEventHandlers();
       this.connectionStatus = 'connecting';
@@ -93,8 +84,8 @@ class AdminWebSocketService {
     });
 
     this.adminSocket.on('connect_error', (error) => {
-      console.error('🚨 Admin WebSocket connection error:', error);
-      console.error('Current auth token:', adminToken ? 'Present' : 'Missing');
+      console.error('🚨 Admin WebSocket connection error:', error.message || error);
+      console.error('Current auth token:', this.adminToken ? 'Present' : 'Missing');
       this.connectionStatus = 'error';
       this.handleReconnection();
     });

@@ -84,7 +84,7 @@ const createProduct = asyncHandler( async( req,res ) => {
 	try {
 		const { productTitle, productDescription, originalPrice, discountedPrice, quantity, productImage: base64Images, category, warranty, brand } = req.body;
 
-		if( !productTitle || !productDescription || !originalPrice || !discountedPrice || !quantity || !productImage || !category || !warranty || !brand ) {
+		if ( !productTitle || !productDescription || !originalPrice || !discountedPrice || !quantity || !productImage || !category || !warranty || !brand ) {
 			throw new ApiError(400, "Please fill all the fields");
 		}
 
@@ -343,9 +343,48 @@ const updateStockOfProduct = asyncHandler( async ( req, res ) => {
 	.json(new ApiResponse(200, true, 'Product stock updated successfully',productId))
 })
 
-const updateSoldCountOfProduct = asyncHandler( async ( req, res ) => {})
+const updateSoldCountOfProduct = asyncHandler( async ( req, res ) => {
+	try {
+		
+		const product = await Product.findByIdAndUpdate(req.params.id, {$inc:{soldCount:req.body.quantity}}, 
+		{ new: true });
 
-const updateLikesOfProduct = asyncHandler( async ( req, res ) => {})
+		if(!product){
+			throw new ApiError(404,'product not found')
+		}
+
+		return res
+		.status(200)
+		.json(new ApiResponse(200, true, 'Product sold count updated successfully', product))
+
+	} catch (error) {
+		console.log("Error while updating sold count of product: ", error)
+		throw new ApiError(500, "Error while updating sold count of product");
+		
+	}
+})
+
+const updateLikesOfProduct = asyncHandler( async ( req, res ) => {
+
+	try {
+		
+		const product = await Product.findByIdAndUpdate(req.params.id, {$inc:{likes:1}}, 
+		{ new: true });
+
+		if(!product){
+			throw new ApiError(404,'product not found')
+		}
+
+		return res
+		.status(200)
+		.json(new ApiResponse(200, true, 'Product likes updated successfully', product))
+
+	} catch (error) {
+		console.log("Error while updating likes of product: ", error)
+		throw new ApiError(500, "Error while updating likes of product");
+		
+	}
+})
 
 
 
