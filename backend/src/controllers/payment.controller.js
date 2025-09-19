@@ -85,7 +85,7 @@ const createOrderAndInitiatePaytm = asyncHandler(async (req, res, next) => {
             paymentMethod: 'paytm_pg', // Indicate payment method
             paymentStatus: 'pending',
             shippingCharges: 0, // Calculate shipping charges if applicable
-            paytmOrderId: `ORDER_${Date.now()}_${userId.toString().slice(-5)}`, // Unique ID for Paytm
+            // paytmOrderId: `ORDER_${Date.now()}_${userId.toString().slice(-5)}`, // Unique ID for Paytm
         });
     
         if (!order) {

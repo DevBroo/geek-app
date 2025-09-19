@@ -137,16 +137,16 @@ const orderSchema = new Schema(
             enum: ["pending", "processing", "shipped", "delivered", "returned", "cancelled"], // Updated enum
             required: true
         },
-        // Payment Gateway specific identifiers for this order
-        paytmOrderId: { 
-            type: String, 
-            sparse: true 
-        }, // Your internal order ID used with Paytm
-        paytmTxnId: { 
-            type: String, 
-            sparse: true 
-        },   // Paytm's transaction ID for this order
-        // You might add paytmResponse: { type: Object, sparse: true } here if you want to store the full response
+        // // Payment Gateway specific identifiers for this order
+        // paytmOrderId: { 
+        //     type: String, 
+        //     sparse: true 
+        // }, // Your internal order ID used with Paytm
+        // paytmTxnId: { 
+        //     type: String, 
+        //     sparse: true 
+        // },   // Paytm's transaction ID for this order
+        // // You might add paytmResponse: { type: Object, sparse: true } here if you want to store the full response
 
         paymentMethod: {
             type: String,
