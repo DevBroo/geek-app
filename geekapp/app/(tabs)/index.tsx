@@ -26,6 +26,7 @@ import NotificationsScreen from "../../components/NotificationsScreen";
 import { useCart } from "../../context/CartContext";
 import CustomStatusBar from "../../components/CustomStatusBar";
 
+
 // Define the Notification type to match the one expected by NotificationsScreen
 interface Notification {
   id: string;
@@ -35,6 +36,13 @@ interface Notification {
   isRead: boolean;
   type: 'order' | 'promo' | 'system' | 'payment';
   image?: any;
+}
+
+interface categories{
+  id:number;
+  name:string;
+  icon: keyof typeof Ionicons.glyphMap | any;
+  route:string;
 }
 
 export default function Index() {
@@ -132,9 +140,9 @@ export default function Index() {
   
   // Sample banner data - replace with your actual banner images
   const banners = [
-    { id: 1, image: require('../../assets/images/geeklappylogo.png'), title: 'Special Offer' },
-    { id: 2, image: require('../../assets/images/geeklappylogo.png'), title: 'New Arrivals' },
-    { id: 3, image: require('../../assets/images/geeklappylogo.png'), title: 'Trending Products' },
+    { id: 1, image: require('../../assets/images/banner1.jpg'), title: 'Special Offer' },
+    { id: 2, image: require('../../assets/images/banner2.jpg'), title: 'New Arrivals' },
+    { id: 3, image: require('../../assets/images/banner3.jpg'), title: 'Trending Products' },
   ];
   
   // Filter data
@@ -231,13 +239,13 @@ export default function Index() {
   };
   
   // Category data
-  const categories = [
-    { id: 1, name: 'Laptop', image: require('../../assets/images/geeklappylogo.png'), route: '/category/laptop' },
-    { id: 2, name: 'CCTV', image: require('../../assets/images/geeklappylogo.png'), route: '/category/cctv' },
-    { id: 3, name: 'PC', image: require('../../assets/images/geeklappylogo.png'), route: '/category/pc' },
-    { id: 4, name: 'Accessories', image: require('../../assets/images/geeklappylogo.png'), route: '/category/accessories' },
-    { id: 5, name: 'Printers', image: require('../../assets/images/geeklappylogo.png'), route: '/category/printers' },
-    { id: 6, name: 'Networking', image: require('../../assets/images/geeklappylogo.png'), route: '/category/networking' },
+  const categories: categories[] = [
+    { id: 1, name: 'Laptop', icon: require('../../assets/images/lap-an.jpg'), route: '/category/laptop' },
+    { id: 2, name: 'CCTV', icon: require('../../assets/images/cctc-an.jpg'), route: '/category/cctv' },
+    { id: 3, name: 'PC', icon: require('../../assets/images/pc-an.png'), route: '/category/pc' },
+    { id: 4, name: 'Accessories', icon: require('../../assets/images/access-an.jpg'), route: '/category/accessories' },
+    { id: 5, name: 'Printers', icon: require('../../assets/images/printers.jpg'), route: '/category/printers' },
+    { id: 6, name: 'Networking', icon: require('../../assets/images/networking.jpg'), route: '/category/networking' },
   ];
   
   // Product data for Major Offers section
@@ -245,7 +253,7 @@ export default function Index() {
     { 
       id: 1, 
       title: 'Laptop Pro', 
-      image: require('../../assets/images/geeklappylogo.png'), 
+      image: require('../../assets/images/lap1.jpg'), 
       rating: 4.8, 
       reviewCount: 120, 
       originalPrice: 1099.99, 
@@ -254,7 +262,7 @@ export default function Index() {
     { 
       id: 2, 
       title: 'Gaming Mouse', 
-      image: require('../../assets/images/geeklappylogo.png'), 
+      image: require('../../assets/images/mouse1.jpg'), 
       rating: 3.7, 
       reviewCount: 85, 
       originalPrice: 79.99, 
@@ -263,7 +271,7 @@ export default function Index() {
     { 
       id: 3, 
       title: 'Wireless Earbuds', 
-      image: require('../../assets/images/geeklappylogo.png'), 
+      image: require('../../assets/images/wireless-earbuds.jpg'), 
       rating: 4.5, 
       reviewCount: 210, 
       originalPrice: 129.99, 
@@ -272,7 +280,7 @@ export default function Index() {
     { 
       id: 4, 
       title: '4K Monitor', 
-      image: require('../../assets/images/geeklappylogo.png'), 
+      image: require('../../assets/images/monitor.jpg'), 
       rating: 4.2, 
       reviewCount: 95, 
       originalPrice: 399.99, 
@@ -281,7 +289,7 @@ export default function Index() {
     { 
       id: 5, 
       title: 'Mechanical Keyboard', 
-      image: require('../../assets/images/geeklappylogo.png'), 
+      image: require('../../assets/images/keyboard1.jpg'), 
       rating: 3.9, 
       reviewCount: 67, 
       originalPrice: 129.99, 
@@ -290,7 +298,7 @@ export default function Index() {
     { 
       id: 6, 
       title: 'Wireless Router', 
-      image: require('../../assets/images/geeklappylogo.png'), 
+      image: require('../../assets/images/router.jpg'), 
       rating: 2.8, 
       reviewCount: 42, 
       originalPrice: 99.99, 
@@ -299,7 +307,7 @@ export default function Index() {
     { 
       id: 7, 
       title: 'External SSD', 
-      image: require('../../assets/images/geeklappylogo.png'), 
+      image: require('../../assets/images/ssd.jpg'), 
       rating: 4.7, 
       reviewCount: 156, 
       originalPrice: 159.99, 
@@ -308,7 +316,7 @@ export default function Index() {
     { 
       id: 8, 
       title: 'Webcam HD', 
-      image: require('../../assets/images/geeklappylogo.png'), 
+      image: require('../../assets/images/webcam.jpg'), 
       rating: 1.9, 
       reviewCount: 28, 
       originalPrice: 89.99, 
@@ -317,7 +325,7 @@ export default function Index() {
     { 
       id: 9, 
       title: 'Bluetooth Speaker', 
-      image: require('../../assets/images/geeklappylogo.png'), 
+      image: require('../../assets/images/speaker4.jpg'), 
       rating: 3.5, 
       reviewCount: 73, 
       originalPrice: 69.99, 
@@ -403,7 +411,7 @@ export default function Index() {
                   activeOpacity={0.7}
                 >
                   <View className="bg-white rounded-full shadow-md p-2 items-center justify-center" style={{width: 90, height: 90}}>
-                    <Image source={category.image} style={{width: 40, height: 40}} resizeMode="contain" />
+                    <Image source={category.icon} style={{width: 40, height: 40}} resizeMode="contain" />
                   </View>
                   <Text className="text-center mt-2">{category.name}</Text>
                 </TouchableOpacity>

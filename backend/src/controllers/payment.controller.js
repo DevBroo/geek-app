@@ -12,6 +12,7 @@ import  { calculateItemPrice } from '../utils/discountCalculations.js'; // Assum
  
 import PaytmChecksum from 'paytmchecksum';
 import  https from 'https';
+import { StandardCheckoutClient, Env, MetaInfo, StandardCheckoutPayRequest } from 'pg-sdk-node';
 
 // Paytm Configuration (for Payment Gateway - used for Orders and Wallet Deposits)
 const PAYTM_PG_CONFIG = {
@@ -26,6 +27,14 @@ const PAYTM_PG_CONFIG = {
         : "https://securegw-stage.paytm.in"
 };
 
+// PhonePe Configuration (for Payouts/Withdrawals)
+const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
+const SALT_KEY = process.env.PHONEPE_SALT_KEY;
+const SALT_INDEX = process.env.PHONEPE_SALT_INDEX;
+const PAY_API_URL = process.env.PHONEPE_PAY_URL;
+const REDIRECT_URL = process.env.FRONTEND_REDIRECT_URL;
+
+
 // --- Controller to create an Order and get transaction token for Paytm PG ---
 const createOrderAndInitiatePaytm = asyncHandler(async (req, res, next) => {
     try {
@@ -37,6 +46,11 @@ const createOrderAndInitiatePaytm = asyncHandler(async (req, res, next) => {
         }
         if (!cartId) {
             throw new ApiError(400, "Cart ID is required to create an order.");
+        }
+
+        const contactNumber = req.user.contactNumber || shippingInfo.phoneNo;
+        if (!contactNumber) {
+            throw new ApiError(400, "Contact Number is missing.");
         }
     
         // 1. Fetch user's cart
@@ -91,99 +105,233 @@ const createOrderAndInitiatePaytm = asyncHandler(async (req, res, next) => {
             throw new ApiError(500, "Failed to create order in database.");
         }
     
-        // 4. Prepare parameters for Paytm Initiate Transaction API
-        const paytmParams = {
-            body: {
-                requestType: "Payment",
-                mid: PAYTM_PG_CONFIG.MID,
-                websiteName: PAYTM_PG_CONFIG.WEBSITE,
-                orderId: order.paytmOrderId, // Paytm's ORDER_ID will be our internal order ID
-                txnAmount: {
-                    value: totalAmount.toFixed(2),
-                    currency: "INR",
-                },
-                userInfo: {
-                    custId: userId.toString(),
-                },
-                // The callbackUrl for the client-side redirect after payment.
-                // We pass the actual Order ID to differentiate it from Wallet deposits in the callback.
-                callbackUrl: `${PAYTM_PG_CONFIG.CALLBACK_URL}?orderId=${order._id.toString()}`,
+        // 4. Construct the PhonePe request payload
+        const payload = {
+            merchantId: MERCHANT_ID,
+            merchantTransactionId: merchantTransactionId,
+            amount: totalAmount * 100, // Amount must be in paisa
+            redirectUrl: `${REDIRECT_URL}/payment-status/${merchantTransactionId}`, // URL to redirect user to
+            redirectMode: 'REDIRECT',
+            mobileNumber: mobileNumber,
+            paymentInstrument: {
+                type: 'PAY_PAGE',
             },
-            head: {}
         };
     
-        // 5. Generate Checksum for the request body
-        const checksum = await PaytmChecksum.generateSignature(
-            JSON.stringify(paytmParams.body),
-            PAYTM_PG_CONFIG.MERCHANT_KEY
-        );
-        paytmParams.head.signature = checksum;
-    
-        const post_data = JSON.stringify(paytmParams);
-    
-        // 6. Call Paytm Initiate Transaction API
-        const paytmResponse = await new Promise((resolve, reject) => {
-            const options = {
-                hostname: new URL(PAYTM_PG_CONFIG.BASE_URL).hostname,
-                port: 443,
-                path: '/theia/api/v1/initiateTransaction?mid=' + PAYTM_PG_CONFIG.MID + '&orderId=' + order.paytmOrderId,
-                method: 'POST',
+        // 2. Base64 encode the payload
+        const payloadString = JSON.stringify(payload);
+        const base64Payload = Buffer.from(payloadString).toString('base64');
+
+        // 3. Generate the checksum
+        const stringToHash = base64Payload + '/pg/v1/pay' + SALT_KEY;
+        const sha256Hash = crypto.createHash('sha256').update(stringToHash).digest('hex');
+        const checksum = `${sha256Hash}###${SALT_INDEX}`;
+
+        // 4. Send the request to the PhonePe API
+        const response = await axios.post(
+            PAY_API_URL,
+            { request: base64Payload },
+            {
                 headers: {
                     'Content-Type': 'application/json',
-                    'Content-Length': post_data.length
-                }
-            };
-    
-            let response = "";
-            const post_req = https.request(options, function (post_res) {
-                post_res.on('data', function (chunk) {
-                    response += chunk;
-                });
-                post_req.on('end', function () {
-                    resolve(JSON.parse(response));
-                });
+                    'X-VERIFY': checksum,
+                    'accept': 'application/json',
+                },
+            }
+        );
+
+        // 5. Handle the API response
+        if (response.data && response.data.success && response.data.data.instrumentResponse.redirectInfo) {
+            const redirectUrl = response.data.data.instrumentResponse.redirectInfo.url;
+            return res.status(200).json({ success: true, redirectUrl });
+        } else {
+            console.error('PhonePe API response error:', response.data);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to initiate payment.',
+                details: response.data,
             });
-    
-            post_req.on('error', function (error) {
-                reject(error);
-            });
-    
-            post_req.write(post_data);
-            post_req.end();
-        });
-    
-        if (!paytmResponse || paytmResponse.head.responseCode !== '200' || !paytmResponse.body.txnToken) {
-            console.error("Paytm Initiate Transaction API Error:", paytmResponse);
-            order.status = 'cancelled'; // Mark order as cancelled if payment initiation fails
-            order.paymentStatus = 'failed';
-            await order.save();
-            throw new ApiError(500, paytmResponse.body.resultInfo?.resultMsg || "Failed to initiate payment with Paytm.");
         }
     
-        // 7. Update internal order with Paytm's transaction token
-        order.paytmTxnToken = paytmResponse.body.txnToken;
-        await order.save();
-    
-        // 8. Send necessary details to frontend
-        return res
-        .status(200)
-        .json(new ApiResponse(
-            200, {
-            orderId: order._id, // Your internal order ID
-            paytmOrderId: order.paytmOrderId, // Paytm's ORDER_ID
-            mid: PAYTM_PG_CONFIG.MID,
-            txnToken: paytmResponse.body.txnToken,
-            amount: totalAmount.toFixed(2),
-            callbackUrl: `${PAYTM_PG_CONFIG.CALLBACK_URL}?orderId=${order._id.toString()}`,
-            isStaging: PAYTM_PG_CONFIG.PAYTM_ENV === "STAGING",
-            userInfo: {
-                custId: userId.toString(),
-            }
-        }, "Paytm transaction token for order generated successfully."));
+        
     } catch (error) {
-        throw new ApiError(500, "Failed to create Paytm order.", [], error.stack);
+        throw new ApiError(500, "Failed to createOrderAndInitiatePaytm: ", error);
     }
 });
+
+
+/**
+ * Handles the callback from PhonePe and verifies payment status.
+ * This is a crucial step for final order confirmation.
+ * NOTE: For full security, you should implement a webhook listener.
+ * This is a basic redirect-based status check.
+ *
+ * @param {Object} req - The Express request object.
+ * @param {Object} res - The Express response object.
+ */
+export const checkPaymentStatus = async (req, res) => {
+    try {
+        const { merchantTransactionId } = req.params;
+
+        // Construct the string for the status check checksum
+        const stringToHash = `/pg/v1/status/${MERCHANT_ID}/${merchantTransactionId}` + SALT_KEY;
+        const sha256Hash = crypto.createHash('sha256').update(stringToHash).digest('hex');
+        const checksum = `${sha256Hash}###${SALT_INDEX}`;
+        
+        // Make the API call to check the status
+        const statusResponse = await axios.get(
+            `${PAY_API_URL.replace('/pay', '')}/status/${MERCHANT_ID}/${merchantTransactionId}`,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-VERIFY': checksum,
+                    'X-MERCHANT-ID': MERCHANT_ID,
+                    'accept': 'application/json',
+                },
+            }
+        );
+
+        const status = statusResponse.data.code;
+
+        // Based on the status, you can update your database and redirect
+        if (status === 'PAYMENT_SUCCESS') {
+            // TODO: Update your order in the database to 'PAID' or 'COMPLETED'
+            return res.redirect(`${REDIRECT_URL}/success?transactionId=${merchantTransactionId}`);
+        } else {
+            // TODO: Update your order in the database to 'FAILED' or 'PENDING'
+            return res.redirect(`${REDIRECT_URL}/failure?transactionId=${merchantTransactionId}`);
+        }
+
+    } catch (error) {
+        console.error('Error in checkPaymentStatus:', error);
+        res.redirect(`${REDIRECT_URL}/failure?error=internal_server_error`);
+    }
+};
+
+
+/**
+ * Initiates a refund for a successful PhonePe transaction.
+ *
+ * @param {Object} req - The Express request object.
+ * @param {Object} res - The Express response object.
+ */
+export const initiateRefund = async (req, res) => {
+    try {
+        const { originalTransactionId, amount, mobileNumber } = req.body;
+
+        if (!originalTransactionId || !amount || !mobileNumber) {
+            return res.status(400).json({ success: false, message: 'Original transaction ID, amount, and mobile number are required.' });
+        }
+
+        // Generate a unique transaction ID for the refund
+        const merchantRefundId = uuidv4();
+
+        // 1. Construct the refund request payload
+        const payload = {
+            merchantId: MERCHANT_ID,
+            merchantTransactionId: merchantRefundId, // This is the ID for the refund transaction
+            originalTransactionId: originalTransactionId, // This is the original transaction ID to be refunded
+            amount: amount * 100, // Amount must be in paisa
+            callbackUrl: `${REDIRECT_URL}/refund-status/${merchantRefundId}`, // URL for a webhook callback (recommended)
+            mobileNumber: mobileNumber
+        };
+
+        // 2. Base64 encode the payload
+        const payloadString = JSON.stringify(payload);
+        const base64Payload = Buffer.from(payloadString).toString('base64');
+
+        // 3. Generate the checksum
+        const stringToHash = base64Payload + '/pg/v1/refund' + SALT_KEY;
+        const sha256Hash = crypto.createHash('sha256').update(stringToHash).digest('hex');
+        const checksum = `${sha256Hash}###${SALT_INDEX}`;
+
+        // 4. Send the request to the PhonePe API
+        const response = await axios.post(
+            REFUND_API_URL,
+            { request: base64Payload },
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-VERIFY': checksum,
+                    'accept': 'application/json',
+                },
+            }
+        );
+
+        // 5. Handle the API response
+        if (response.data && response.data.success) {
+            
+            
+            return res.status(200).json({
+                success: true,
+                message: 'Refund initiated successfully. Check status for final confirmation.',
+                data: response.data.data
+            });
+        } else {
+            console.error('PhonePe refund API response error:', response.data);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to initiate refund.',
+                details: response.data,
+            });
+        }
+    } catch (error) {
+        console.error('Error in initiateRefund:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error.',
+            error: error.message,
+        });
+    }
+};
+
+
+/**
+ * Checks the status of a specific refund transaction.
+ *
+ * @param {Object} req - The Express request object.
+ * @param {Object} res - The Express response object.
+ */
+export const checkRefundStatus = async (req, res) => {
+    try {
+        const { merchantRefundId } = req.params;
+
+        // Construct the string for the status check checksum
+        const stringToHash = `/pg/v1/status/${MERCHANT_ID}/${merchantRefundId}` + SALT_KEY;
+        const sha256Hash = crypto.createHash('sha256').update(stringToHash).digest('hex');
+        const checksum = `${sha256Hash}###${SALT_INDEX}`;
+
+        // Make the API call to check the status
+        const statusResponse = await axios.get(
+            `${REFUND_API_URL.replace('/refund', '')}/status/${MERCHANT_ID}/${merchantRefundId}`,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-VERIFY': checksum,
+                    'X-MERCHANT-ID': MERCHANT_ID,
+                    'accept': 'application/json',
+                },
+            }
+        );
+
+        const status = statusResponse.data.code;
+
+        return res.status(200).json({
+            success: true,
+            status: statusResponse.data,
+        });
+
+    } catch (error) {
+        console.error('Error in checkRefundStatus:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error.',
+            error: error.message,
+        });
+    }
+};
+
+
 
 // --- Unified Paytm Callback to handle both Order Payments and Wallet Deposits ---
 // This endpoint must be publicly accessible from Paytm.

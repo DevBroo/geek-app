@@ -247,7 +247,7 @@ const updateOrderStatus = asyncHandler(async (req, res, next) => {
         if (orderStatus === 'cancelled' && order.paymentStatus === 'paid') {
             // If a paid order is cancelled, return items to stock.
             for (const item of order.products) {
-                await updateStock(item.product, item.quantity); // Increment stock
+                updateStock(item.product, item.quantity); // Increment stock
             }
             order.paymentStatus = 'refunded_needed'; // Mark for refund processing
             console.log(`Order ${order._id} cancelled. Stock returned. Payment marked for refund.`);

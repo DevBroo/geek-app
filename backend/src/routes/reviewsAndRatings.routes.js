@@ -14,17 +14,13 @@ import {
 const router = Router();
 
 router.post('/:id/create', verifyJWT, createReview);
-
 router.get('/:id', getReviewsByProductId);
-
 router.post('/:id/add-review', verifyJWT, addReviewToProduct);
-
 router.patch('/:id/update-rating', verifyJWT, updateRatingOfProduct);
-
 router.delete('/:id/delete-review', verifyJWT, deleteReviewFromProduct);
 
-router.put('reviews/:id', verifyJWT, isAdmin, updateReviewById);
-
-router.delete('reviews/:id', verifyJWT, deleteReviewById);
+// Admin
+router.put('/reviews/:id', verifyJWT, isAdmin, updateReviewById);
+router.delete('/reviews/:id', verifyJWT, isAdmin, deleteReviewById);
 
 export default router;

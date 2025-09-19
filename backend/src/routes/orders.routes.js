@@ -6,18 +6,18 @@ import { isAdmin, verifyJWT } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 
-router.route("/order/my-orders").get(getMyOrderDetails);
-router.route('/order/new').post(verifyJWT, createOrderAndInitiatePaytm); // To create an order and start Paytm PG
-router.route('/order/:id').get(verifyJWT, getSingleOrderDetails);
-router.route('/order/payment/status/:orderId').get(verifyJWT, getOrderPaymentStatus); // For polling order payment status
+router.route("/my-orders").get(getMyOrderDetails);
+router.route('/new').post(verifyJWT, createOrderAndInitiatePaytm); // To create an order and start Paytm PG
+router.route('/:id').get(verifyJWT, getSingleOrderDetails);
+router.route('/payment/status/:orderId').get(verifyJWT, getOrderPaymentStatus); // For polling order payment status
 
 //-------------------------- Admin Routes -----------------------------//
 
-router.route("admin/orders/:id").delete(verifyJWT, isAdmin, deleteOrder);
-router.route("admin/orders/status/:id").put(verifyJWT, isAdmin, updateOrderStatus);
-router.route("admin/orders/paid/:id").put(verifyJWT, isAdmin, updateOrderToPaid);
-router.route("admin/order/:id/return").put(verifyJWT, isAdmin, processOrderReturn);
-router.route("admin/orders/orders").get( verifyJWT, isAdmin, getAllOrders);
+router.route('/admin/orders/:id').delete(verifyJWT, isAdmin, deleteOrder);
+router.route('/admin/orders/:id/status').put(verifyJWT, isAdmin, updateOrderStatus);
+router.route('/admin/orders/:id/paid').put(verifyJWT, isAdmin, updateOrderToPaid);
+router.route('/admin/orders/:id/return').put(verifyJWT, isAdmin, processOrderReturn);
+router.route('/admin/orders').get( verifyJWT, isAdmin, getAllOrders);
 
 
 // Paytm Payment Gateway Callback (Publicly accessible, no auth)

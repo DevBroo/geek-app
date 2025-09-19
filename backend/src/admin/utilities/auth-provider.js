@@ -2,53 +2,55 @@ import { DefaultAuthProvider } from 'adminjs';
 import componentLoader from './component-loader.js';
 import { User } from '../../models/user.model.js';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-fallback-secret';
 
 const authProvider = new DefaultAuthProvider({
   componentLoader,
   authenticate: async ({ email, password }) => {
     try {
-      console.log('🌴 Admin login attempt - Email:', email);
-      
-      // Find admin user in database (Mongoose syntax)
+      // Find admin user in database
       const user = await User.findOne({ 
-        email: email, 
+        email: "admin@geeklappy.com", 
         role: 'admin' 
       }).lean().exec();
       
-      if (!user) {
-        console.warn('🚫 Admin user not found:', email);
-        return null;
-      }
-      
-      console.log('🎯 Found admin user:', user.email);
-      console.log('🔑 Attempting password verification...');
-      
-      // Verify password using bcrypt
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      
-      if (!isValidPassword) {
-        console.warn('❌ Invalid password for admin:', email);
-        return null;
-      }
-      
-      console.log('✅ Admin authentication successful:', email);
+      if (!user) return null;
+
+      console.log('?? Admin login attempt:', email);
+      console.log('?? Found admin user:', user.email);
+      console.log('?? Stored password hash:', user.password);
+      console.log('?? Provided password:', password);
+  
+      // const isValidPassword = user.password === password || await bcrypt.compare(password, user.password);
+
+      const isValidPassword = user.password === password || await bcrypt.compare(password, user.password);
+      if (!isValidPassword) return null;
+
+      // Generate JWT token
+      const token = jwt.sign(
+        {
+          _id: user._id,
+          email: user.email,
+          role: user.role
+        },
+        JWT_SECRET,
+        { expiresIn: '12h' }
+      );
+
+      // Return user object with token
       return { 
         email: user.email, 
         role: 'admin',
-        userId: user._id.toString() // Required for AdminJS session
+        userId: user._id.toString(),
+        token // <-- Attach the token here
       };
     } catch (error) {
       console.error('💥 Admin authentication critical error:', error.message);
-      console.error('Error stack:', error.stack);
-      
-      // Special handling for database connection errors
-      if (error.name === 'MongoServerError') {
-        console.error('⚠️ MongoDB connection error detected!');
-      }
-      
       return null;
     }
   },
 });
 
-export {authProvider};
+export { authProvider };

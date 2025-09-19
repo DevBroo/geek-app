@@ -128,25 +128,25 @@ const createProduct = asyncHandler( async( req,res ) => {
 
 
 		//---------------  Upload images to Cloudinary -----------------//
-		if (!base64Images || base64Images.length === 0) {
-    		throw new ApiError(400, "Please provide at least one image");
-  		} 
+		// if (!base64Images || base64Images.length === 0) {
+    	// 	throw new ApiError(400, "Please provide at least one image");
+  		// } 
 
-		let uploadedImageDetails = [];
-		// Upload each base64 image to Cloudinary
-		for (const base64Data of base64Images) {
+		// let uploadedImageDetails = [];
+		// // Upload each base64 image to Cloudinary
+		// for (const base64Data of base64Images) {
 	
-			try {
-			const result = await uploadImageCloudinary(base64Data);
-			uploadedImageDetails.push(result); // result already contains { public_id, url }
-			} 
-			catch (uploadError) {
-			// If one image fails, you might want to stop the process or log it
+		// 	try {
+		// 	const result = await uploadImageCloudinary(base64Data);
+		// 	uploadedImageDetails.push(result); // result already contains { public_id, url }
+		// 	} 
+		// 	catch (uploadError) {
+		// 	// If one image fails, you might want to stop the process or log it
 
-			console.error(`Failed to upload one image: ${uploadError.message}`);
-			throw new ApiError(500, "Failed to upload one or more image", uploadError.message);
-			}
-		}
+		// 	console.error(`Failed to upload one image: ${uploadError.message}`);
+		// 	throw new ApiError(500, "Failed to upload one or more image", uploadError.message);
+		// 	}
+		// }
 	
 
 		const product = await Product.create({
@@ -182,6 +182,45 @@ const createProduct = asyncHandler( async( req,res ) => {
 	}
 }
 )
+
+
+const uploadProductImages = asyncHandler( async ( req, res ) => {
+
+	if(!req.user.role === 'admin'){
+		throw new ApiError(403,'not authorized to perform this action')
+	}
+	try {
+		const product = await Product.findById(req.params.id);
+		if (!product) {
+			throw new ApiError(404, 'Product not found');
+		}
+
+		//---------------  Upload images to Cloudinary -----------------//
+		if (!base64Images || base64Images.length === 0) {
+    		throw new ApiError(400, "Please provide at least one image");
+  		} 
+
+		let uploadedImageDetails = [];
+		// Upload each base64 image to Cloudinary
+		for (const base64Data of base64Images) {
+	
+			try {
+			const result = await uploadImageCloudinary(base64Data);
+			uploadedImageDetails.push(result); // result already contains { public_id, url }
+			} 
+			catch (uploadError) {
+			// If one image fails, you might want to stop the process or log it
+
+			console.error(`Failed to upload one image: ${uploadError.message}`);
+			throw new ApiError(500, "Failed to upload one or more image", uploadError.message);
+			}
+		}
+		
+	} catch (error) {
+		console.log("Error while uploading product images: ", error)
+		throw new ApiError(500, "Error while uploading product images");
+	}
+})
 
 //@desc   update a product by id admin only
 const updateProductById = asyncHandler( async ( req,res ) => {
@@ -394,6 +433,7 @@ export {
 	createProduct,
 	updateProductById,
 	deleteProductById,
+	uploadProductImages,
 	updateProductImages,
 	deleteProductImage,
 	getTopProducts,

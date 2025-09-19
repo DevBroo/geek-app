@@ -6,13 +6,6 @@ const addressSchema = new Schema({
         ref: 'User',
         required: true
     },
-    addressType: {
-        type: String,
-        enum: ['Shipping', 'Billing', 'Both'],
-        required: true,
-        default: 'Both',
-        trim: true
-    },
     isBoth: {
         type: Boolean,
         default: false,
@@ -50,12 +43,6 @@ const addressSchema = new Schema({
     },
     state: {
         type: String,
-        required: true,
-        trim: true
-    },
-    country: {
-        type: String,
-        enum: ['India', 'USA', 'Canada', 'UK', 'Australia', 'Other'],
         required: true,
         trim: true
     }

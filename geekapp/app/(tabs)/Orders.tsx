@@ -356,7 +356,7 @@ const Orders = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16 }}
           >
-            <View className="flex-row bg-white border-b border-[#EEEEEE] py-1.5  items-center">
+            <View className="flex-row bg-white border-b border-[#EEEEEE] items-center">
               {[
                 { id: 'all', label: 'All' },
                 { id: 'received', label: 'Received' },

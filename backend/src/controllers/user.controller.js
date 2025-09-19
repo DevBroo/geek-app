@@ -2,6 +2,7 @@ import {asyncHandler} from "../utils/asyncHandler.js";
 import {ApiError} from "../utils/ApiError.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 import {User} from "../models/user.model.js";
+import {Address} from "../models/address.model.js";
 import { cloudinary, uploadImageCloudinary } from "../utils/cloudinary.service.js";
 import jwt from "jsonwebtoken";
 
@@ -9,7 +10,7 @@ import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshTokens = async(userId) => {
     try {
-        const user = await User.findById(userId).select("-password -otp -otpExpires -otpVerified");
+        const user = await User.findById(userId).select("-password -refreshToken");
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
 
@@ -28,18 +29,6 @@ const generateAccessAndRefreshTokens = async(userId) => {
 const registerUser = asyncHandler( async (req, res) => {
 
     const { username, email, password } = req.body;
-    // const user = await User.create({
-    //     username,
-    //     email,
-    //     password,
-    // });
-    // console.log(user);
-
-    if (
-        [fullName, email, username, password, orgName, contactNumber, shopAddress, GSTNumber].some((field) => field?.trim() === "")
-    ) {
-        throw new ApiError(400, "All fields are required")
-    }
 
     const existedUser = await User.findOne({
         $or: [{ email }, { username }],
@@ -47,29 +36,22 @@ const registerUser = asyncHandler( async (req, res) => {
     console.log(existedUser);
 
     if (existedUser) {
-        throw new ApiError(400, "User already exists");
+        throw new ApiError(400, "User already exists with this email or username");
     }
 
-    const isPasswordValid = await user.isPasswordMatched(password);
+    const { orgName, contactNumber, shopAddress, GSTNumber, urdId, isBoth, billingAddress, shippingAddress, district, landmark, city, pinCode, state } = req.body;
 
-    if (!isPasswordValid) {
-        throw new ApiError(401, "Invalid password");
+    if (
+        [ email, username, password, orgName, contactNumber, shopAddress, GSTNumber, urdId, isBoth, billingAddress, shippingAddress, district, landmark, city, pinCode, state].some((field) => field?.trim() === "")
+    ) {
+        throw new ApiError(400, "All fields are required")
     }
-
-    const { fullName, orgName, contactNumber, shopAddress, GSTNumber } = req.body;
 
     // make the orgName regex to be alphabetic and 3-50 characters long
     const orgNameRegex = /^[a-zA-Z\s]{3,50}$/;
     if (!orgNameRegex.test(orgName)) {
         throw new ApiError(400, "Invalid organization name format");
     }
-    // make the shopAddress regex to be alphanumeric and 3-100 characters long
-    const shopAddressRegex = /^[a-zA-Z0-9\s,.'-]{3,100}$/;
-    if (!shopAddressRegex.test(shopAddress)) {
-        throw new ApiError(400, "Invalid shop address format");
-    }
-
-
 
     // make the cotactnumber regex to be 10 digit number
     const contactNumberRegex = /^\d{10}$/;
@@ -77,29 +59,10 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(400, "Invalid contact number format");
     }
 
-
-    // proceed with testing the otp verification dont use any third party service for now
-    // Note: This is a placeholder for OTP verification logic. You should implement actual OTP verification. right now proceed with custom logic for now.
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit OTP
-    console.log(`OTP for ${contactNumber} is: ${otp}`); // Simulate sending OTP via SMS or email    
-    // In a real application, you would send the OTP to the user's contact number via SMS or email.
-
-
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,12}$/;
     if (!passwordRegex.test(password)) {
         throw new ApiError(400, "Invalid password format");
     }
-    // make the fullName regex to be alphabetic and 3-50 characters long
-    const fullNameRegex = /^[a-zA-Z\s]{3,50}$/;
-    if (!fullNameRegex.test(fullName)) {
-        throw new ApiError(400, "Invalid full name format");
-    }
-
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(User._id);
-
-    const loggedInUser = await User.findById(User._id).select("-password -otp -refreshToken -otpExpires -otpVerified");
-
 
     // make the username regex to be alphanumeric and 3-20 characters long
     const usernameRegex = /^[a-zA-Z0-9]{3,20}$/;
@@ -113,19 +76,15 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(400, "Invalid email format");
     }
 
-
     // make the GSTNumber regex to be 15 digit alphanumeric number
-    const GSTNumberRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9]{1}[Z][0-9]{1}$/;
+    const GSTNumberRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
     if (!GSTNumberRegex.test(GSTNumber)) {
         throw new ApiError(400, "Invalid GST number format");
-    }
-
-    // Here you would typically check if the user already exists in the database
-    // and save the new user to the database.   
+    }   
     
     let profilePictureLocalPath;
-    if (req.files && Array.isArray(req.files.profilePictureLocalPath) && req.files.profilePictureLocalPath.length > 0) {
-        profilePictureLocalPath = req.files.profilePictureLocalPath[0].path || "";
+    if (req.files && Array.isArray(req.files.profilePicture) && req.files.profilePicture.length > 0) {
+        profilePictureLocalPath = req.files.profilePicture[0].path || "";
     } 
 
     const profilePicture = await uploadImageCloudinary(profilePictureLocalPath);
@@ -133,10 +92,18 @@ const registerUser = asyncHandler( async (req, res) => {
         throw new ApiError(500, "Failed to upload profile picture");
     }
 
-    const options = {
-        HttpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Set to true in production
+    // const options = {
+    //     HttpOnly: true,
+    //     secure: process.env.NODE_ENV === 'production', // Set to true in production
+    // }
+
+    if (GSTNumber && GSTNumber !== '') {
+        isGstVerified = true; 
     }
+    if (!billingAddress || !shippingAddress || !district || !landmark || !city || !pinCode || !state) {
+        throw new ApiError(400, "All address fields are required")
+    }
+
 
     const newUser = await User.create({
         fullName,
@@ -156,16 +123,33 @@ const registerUser = asyncHandler( async (req, res) => {
     console.log(newUser);
     await newUser.save({ validateBeforeSave: false });
 
+    const userAddress = await Address.create({
+        isBoth,
+        billingAddress,
+        shippingAddress,
+        district,
+        landmark,
+        city,
+        pinCode,
+        state,
+        user: newUser._id, // Will be set after user creation
+    });
+    if (!userAddress) {
+        throw new ApiError(500, "Failed to create address");
+    }
+    await userAddress.save({ validateBeforeSave: false });
+
     return res.status(200)
-    .cookie('accessToken', accessToken, options)
+    // .cookie('accessToken', accessToken, options)
     .cookie('refreshToken', refreshToken, options)
     .json(
         new ApiResponse(
            200,
             "User registered successfully",
             {
-                user: loggedInUser,
-                accessToken,
+                user: newUser,
+                address: userAddress,
+                // accessToken,
                 refreshToken,
                 profilePicture: profilePicture.url, // Assuming profilePicture.url contains the URL of the uploaded image
             }
@@ -333,6 +317,11 @@ const changeCurrentPassword = asyncHandler( async( req, res) => {
         
     if(!isPasswordCorrect){
         throw new ApiError(401, "Old Password is incorrect")
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,12}$/;
+    if (!passwordRegex.test(newPassword)) {
+        throw new ApiError(400, "Invalid password format");
     }
 
     user.password = newPassword;

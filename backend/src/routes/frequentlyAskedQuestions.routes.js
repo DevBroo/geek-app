@@ -22,9 +22,9 @@ router.route('/faq/:id').get(getSingleFAQ);
 router.use(verifyJWT);
 router.use(isAdmin);
 
-router.route('admin/faqs/answer').post(answerQuestion);
-router.route('admin/faqs/unanswered').get(getUnansweredFAQs);
-router.route('admin/faq/:id').put(updateFrequentlyAskedQuestion).delete(deleteFAQ);
+router.route('/admin/faq/:id/answer').put(answerQuestion);
+router.route('/admin/faqs/unanswered').get(getUnansweredFAQs);
+router.route('/admin/faq/:id').delete(deleteFAQ);
 
 
 export default router;

@@ -6,10 +6,10 @@ const router = express.Router();
 
 router.route('/').get(verifyJWT, getNotifications);
 router.route('/:notificationId').get(verifyJWT, getNotificationById);
-router.route('/read/notificationId').put(verifyJWT, markNotificationAsRead);
+router.route('/:notificationId/read').put(verifyJWT, markNotificationAsRead);
 
 // Admin routes
-router.route('/admin/get-all-notifications').get(verifyJWT, isAdmin, getNotifications);
-router.route('/admin/create-notifications').post(verifyJWT, isAdmin, createNotification);
+router.route('/admin/notifications').get(verifyJWT, isAdmin, getNotifications);
+router.route('/admin/notifications').post(verifyJWT, isAdmin, createNotification);
 
 export default router;

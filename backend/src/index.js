@@ -17,48 +17,50 @@ connectDB()
 .then(async () => {
     const PORT = process.env.PORT || 8000;
 
-    const adminRouter = await buildAdminRouter(server); // Use the imported AdminJS router
-    app.use('/admin', adminRouter); // Mount AdminJS router at /admin path
-    console.log(`AdminJS mounted at /admin path`);
-    console.log(`✅ AdminJS Router created successfully`);
+    console.log('?? Setting up AdminJS authentication...');
+    console.log('?? Admin Email:', process.env.ADMIN_EMAIL);
+    console.log('?? Has Admin Password:', !!process.env.ADMIN_PASSWORD);
+    console.log('?? Has Cookie Password:', !!process.env.ADMIN_COOKIE_PASSWORD);
+    console.log('?? Has Session Secret:', !!process.env.SESSION_SECRET);
+
+    // // ? CRITICAL FIX: Mount AdminJS BEFORE starting server
+    // const adminRouter = await buildAdminRouter(server);
+    // app.use('/admin', adminRouter);
+    // console.log('? AdminJS router mounted at /admin');
 
     // Initialize Comprehensive WebSocket System
     comprehensiveWsManager.initialize(server);
+    console.log('? WebSocket system initialized');
     
-    // Initialize AdminJS WebSocket connection
-    setTimeout(() => {
-        adminWS.connect().catch(console.error);
-    }, 4000); // Give server time to start
-    
+    // Start server
     server.listen(PORT, () => {
-        console.log(`🚀 Server is running on port ${PORT}`);
-        console.log(`🔌 Comprehensive WebSocket server is ready on port ${PORT}`);
-        console.log(`👑 AdminJS available at http://localhost:${PORT}/admin`);
-        console.log(`📊 All data types integrated: Products, Orders, Notifications, Wallet, etc.`);
-        console.log(`⚡ Real-time features: FULLY ENABLED`);
+        console.log('?? ================================');
+        console.log("?? Server is running on port ");
+        console.log("?? WebSocket server ready on port ");
+        console.log("?? AdminJS: http://localhost:/admin");
+        console.log('?? ================================');
+        console.log('');
+        console.log('?? AdminJS Login Credentials:');
+        console.log('   ?? Email: admin@geeklappy.com');
+        console.log('   ?? Password: GeekLappy@2024#Admin');
+        console.log('');
+        console.log('?? Features: Products, Orders, Notifications, Wallet');
+        console.log('? Real-time: FULLY ENABLED');
     });
+
+    // Initialize AdminJS WebSocket connection after server starts
+    setTimeout(() => {
+        console.log('?? Initializing AdminJS WebSocket...');
+        adminWS.connect().catch(console.error);
+    }, 2000);
 })
 .catch(err => {
-    console.error('Failed to connect to the database:', err);
+    console.error('? Failed to connect to the database:', err);
     process.exit(1);
 });
 
-
-// Handle unhandled promise rejections (good practice)
+// Handle unhandled promise rejections
 process.on('unhandledRejection', (err, promise) => {
-    console.error(`Error: ${err.message}`);
-    // Close server & exit process
+    console.error("? Unhandled Rejection:" );
     server.close(() => process.exit(1));
-})
-
-
-// ;(  async () => {
-//     const app = express();
-//     try {
-//         // Define a simple route
-//     await mongoose.connect('mongodb://localhost:27017/test', { useNewUrlParser: true });
-//     } catch (error) {
-//         console.error('Error connecting to MongoDB:', error);
-//         process.exit(1);
-//     }
-// })();
+});

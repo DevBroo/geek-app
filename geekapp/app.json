@@ -22,7 +22,12 @@
         "barStyle": "dark-content",
         "backgroundColor": "#FAFAFA",
         "translucent": true
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.webbro.geekappapp"
     },
     "web": {
       "bundler": "metro",
@@ -44,6 +49,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "524cfd13-1452-42b2-9729-70cde80f2944"
+      }
     }
   }
 }

@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 const userSchema = new Schema(
@@ -43,7 +44,7 @@ const userSchema = new Schema(
         trim: true,
         required: true
     },
-    isVerified: {
+    isGstVerified: {
         type: Boolean,
         default: false
     },
@@ -72,7 +73,6 @@ const userSchema = new Schema(
             ref: 'address',
             required: true,
             default: [],
-            unique: true,
             validate: {
                 validator: function(v) {
                     return v.length > 0;
@@ -118,6 +118,21 @@ userSchema.pre('save', async function (next) {
     next();
 });
 
+userSchema.pre('save', async function(next) {
+    if (this.isModified('GSTNumber') && this.GSTNumber !== '') {
+        this.isGstVerified = true; // Reset GST verification status if GST number changes
+    } 
+    next();
+});
+
+//hash the password before saving
+userSchema.pre('findOneAndUpdate', async function(next) {
+    // Check if the password field has been modified   
+    if (this._update.password) {
+        this._update.password = await bcrypt.hash(this._update.password, 12);
+    }
+    next();
+});
 userSchema.methods.isPasswordMatched = async function(password)  {
     return await bcrypt.compare(password, this.password);
 };

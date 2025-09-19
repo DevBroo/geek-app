@@ -63,7 +63,7 @@ const ProductsListing = () => {
     {
       id: 1,
       title: 'Dell XPS 13 Laptop',
-      image: require('../assets/images/geeklappylogo.png'),
+      image: require('../assets/images/lap1.jpg'),
       rating: 4.7,
       reviewCount: 1245,
       originalPrice: 1299,
@@ -78,7 +78,7 @@ const ProductsListing = () => {
     {
       id: 2,
       title: 'MacBook Pro 14"',
-      image: require('../assets/images/geeklappylogo.png'),
+      image: require('../assets/images/lap2.jpg'),
       rating: 4.9,
       reviewCount: 2134,
       originalPrice: 1999,
@@ -92,7 +92,7 @@ const ProductsListing = () => {
     {
       id: 3,
       title: 'Samsung Galaxy S23 Ultra',
-      image: require('../assets/images/geeklappylogo.png'),
+      image: require('../assets/images/mobile.jpg'),
       rating: 4.6,
       reviewCount: 3421,
       originalPrice: 1199,
@@ -107,7 +107,7 @@ const ProductsListing = () => {
     {
       id: 4,
       title: 'Logitech MX Master 3S',
-      image: require('../assets/images/geeklappylogo.png'),
+      image: require('../assets/images/mouse1.jpg'),
       rating: 4.5,
       reviewCount: 856,
       originalPrice: 99,
@@ -122,7 +122,7 @@ const ProductsListing = () => {
     {
       id: 5,
       title: 'HP Spectre x360',
-      image: require('../assets/images/geeklappylogo.png'),
+      image: require('../assets/images/lap3.jpg'),
       rating: 4.3,
       reviewCount: 674,
       originalPrice: 1399,
@@ -136,7 +136,7 @@ const ProductsListing = () => {
     {
       id: 6,
       title: 'Razer DeathAdder V3',
-      image: require('../assets/images/geeklappylogo.png'),
+      image: require('../assets/images/mouse1.jpg'),
       rating: 4.8,
       reviewCount: 1523,
       originalPrice: 89,
