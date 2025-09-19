@@ -14,19 +14,6 @@ import PaytmChecksum from 'paytmchecksum';
 import  https from 'https';
 import { StandardCheckoutClient, Env, MetaInfo, StandardCheckoutPayRequest } from 'pg-sdk-node';
 
-// Paytm Configuration (for Payment Gateway - used for Orders and Wallet Deposits)
-const PAYTM_PG_CONFIG = {
-    MID: process.env.PAYTM_MID,
-    MERCHANT_KEY: process.env.PAYTM_MERCHANT_KEY,
-    WEBSITE: process.env.PAYTM_WEBSITE,
-    CHANNEL_ID: process.env.PAYTM_CHANNEL_ID,
-    INDUSTRY_TYPE_ID: process.env.PAYTM_INDUSTRY_TYPE_ID,
-    CALLBACK_URL: process.env.PAYTM_CALLBACK_URL, // Generic callback for PG
-    BASE_URL: process.env.PAYTM_ENV === "PRODUCTION"
-        ? "https://securegw.paytm.in"
-        : "https://securegw-stage.paytm.in"
-};
-
 // PhonePe Configuration (for Payouts/Withdrawals)
 const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
 const SALT_KEY = process.env.PHONEPE_SALT_KEY;
